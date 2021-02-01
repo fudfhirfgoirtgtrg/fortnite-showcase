@@ -1,5 +1,5 @@
-var canvas = document.getElementById("canvas");
-var ctx = canvas.getContext("2d");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
 
 var rotation = 0;
@@ -12,95 +12,35 @@ var selectedItem = 0;
 
 var readyToRender = false;
 
-kickStart();
-
-function kickStart() {
-  window.renderingStarted = Date.now();
-  window.render = setInterval(function () {
-    if ((Date.now() - renderingStarted) > 500) {
-      clearInterval(render)
+setInterval(function () {
+  if (readyToRender) {
+    try {
+      drawFrame(selectedItem);
+    } catch (e) {
+      console.warn("Waiting for textures.")
     }
-    if (readyToRender) {
-      try {
-        drawFrame(selectedItem);
-      } catch (e) {
-        console.warn("Waiting for textures.")
-      }
-    }
-  }, 16);
-}
+  }
+}, 16);
 
 loadItemPage();
 loadBlocks(); /* Only load this once per winodw load. */
 
 function loadItemPage() {
   frames = {}; /* Reset frames */
-  var item = itemFromID(selectedItem);
-  printInfo();
-  if (item.type == "Emote") {
-    clearInterval(render);
-    readyToRender = false;
-    loadVideoPreview();
-    return;
-  } else if (!readyToRender) {
-    setCanvas();
-    var render = setInterval(function () {
-      if (readyToRender) {
-        try {
-          drawFrame(selectedItem);
-        } catch (e) {
-          console.warn("Waiting for textures.")
-        }
-      }
-    }, 16);
-    readyToRender = true;
-  }
   rotation = itemFromID(Number(selectedItem)).mainframe;
+  printInfo();
   loadTextures();
   readyToRender = true;
 }
 
-function loadVideoPreview() {
-  var item = itemFromID(selectedItem);
-  var videoSrc = "src/emotes/" + item.src + ".mp4";
-  document.getElementById("canvas_keep").innerHTML = "<video width='500' height='500' id='canvas' loop autoplay> <source src='" + videoSrc + "'></video>";
-  var canvas = document.getElementById("canvas");
-  canvas.addEventListener('click', function (evt) {
-    console.log("click");
-    if (canvas.paused) {
-      canvas.play();
-    } else {
-      canvas.pause();
-    }
-  }, false);
-}
-
-function setCanvas() {
-  document.getElementById("canvas_keep").innerHTML = '<canvas id="canvas" height="500" width="500"></canvas>';
-  canvas = document.getElementById("canvas");
-  ctx = canvas.getContext("2d");
-  addEventListeners();
-}
-
-
 function loadBlocks() {
   for (let i = 0; i < items.length; i++) {
     var item = items[i];
-    var thumbSrc;
-
-    thumbSrc = "src/thumbnails/" + item.src + ".PNG";
-    var http = new XMLHttpRequest();
-    http.open('HEAD', thumbSrc, false); /* Check if image exist, if display - else display a frame from the animation */
-    http.send();
-    if (http.status == 404) {
-      var imgID = item.mainframe;
-      if (item.mainframe < 10) {
-        imgID = "0" + imgID;
-      }
-      thumbSrc = 'src/' + item.src + '/' + item.src + imgID + '.jpg';
+    var imgID = item.mainframe;
+    if (item.mainframe < 10) {
+      imgID = "0" + imgID;
     }
-
-    document.getElementById("chooser-block").innerHTML += '<div onclick="changeItem(' + i + ')" class="part-block" style="background-Image:url(' + thumbSrc + '); border-color:' + rarityColorsHex[item.rarity] + ';"></div>';
+    document.getElementById("chooser-block").innerHTML += '<div onclick="changeItem(' + i + ')" class="part-block" style="background-Image:url(src/' + item.src + '/' + item.src + imgID + '.jpg); border-color:' + rarityColorsHex[item.rarity] + ';"></div>';
   }
 }
 
@@ -111,7 +51,7 @@ function changeItem(id) {
 }
 
 function loadTextures() {
-  var item = itemFromID(selectedItem);
+  var item = itemFromID(Number(selectedItem));
   for (let i = 0; i < item.frames; i++) {
     var imageID = i;
     if (imageID < 10) {
@@ -126,7 +66,7 @@ function loadTextures() {
 
 function printInfo() {
   /* Print out the information about this item and change the rarity background color. */
-  var item = itemFromID(selectedItem);
+  var item = itemFromID(Number(selectedItem));
 
   /* Change background color */
   for (let i = 0; i < rarityColors.length; i++) {
@@ -178,8 +118,12 @@ function drawFrame() {
 }
 
 function itemFromID(id) {
-  var id = Number(id);
-  return items[id];
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].id === id) {
+      return items[i];
+    }
+  }
+  return false;
 }
 
 function getMousePos(canvas, evt) {
@@ -190,17 +134,15 @@ function getMousePos(canvas, evt) {
   };
 }
 
-function addEventListeners() {
-  canvas.addEventListener('mousemove', function (evt) {
-    mousePos = getMousePos(canvas, evt);
-    rotate();
-  }, false);
+canvas.addEventListener('mousemove', function (evt) {
+  mousePos = getMousePos(canvas, evt);
+  rotate();
+}, false);
 
-  canvas.addEventListener('mousedown', function (evt) {
-    mouseDown = true;
-  }, false);
+canvas.addEventListener('mousedown', function (evt) {
+  mouseDown = true;
+}, false);
 
-  canvas.addEventListener('mouseup', function (evt) {
-    mouseDown = false;
-  }, false);
-}
+canvas.addEventListener('mouseup', function (evt) {
+  mouseDown = false;
+}, false);
